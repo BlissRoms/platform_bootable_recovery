@@ -143,7 +143,11 @@ dirUnlinkHierarchy(const char *path)
     errno = 0;
     while ((de = readdir(dir)) != NULL) {
         //TODO: don't blow the stack
-        char dn[PATH_MAX];
+        #ifdef __unix__
+            char dn[PATH_MAX];
+        #elif define __APPLE__
+            char dn[MAX_PATH];
+        #endif
         if (!strcmp(de->d_name, "..") || !strcmp(de->d_name, ".")) {
             continue;
         }
