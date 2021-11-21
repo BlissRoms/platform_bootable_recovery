@@ -39,15 +39,16 @@ static const std::vector<std::pair<std::string, Device::BuiltinAction>> kFastboo
 Device::BuiltinAction StartFastboot(Device* device, const std::vector<std::string>& /* args */) {
   RecoveryUI* ui = device->GetUI();
 
-  std::vector<std::string> title_lines = { "Android Fastboot" };
+  std::vector<std::string> title_lines = { "BlissROM Fastboot" };
   title_lines.push_back("Product name - " + android::base::GetProperty("ro.product.device", ""));
-  title_lines.push_back("Bootloader version - " + android::base::GetProperty("ro.bootloader", ""));
-  title_lines.push_back("Baseband version - " +
-                        android::base::GetProperty("ro.build.expect.baseband", ""));
+  title_lines.push_back("AVB Version - " + android::base::GetProperty("ro.boot.avb_version", ""));
   title_lines.push_back("Serial number - " + android::base::GetProperty("ro.serialno", ""));
   title_lines.push_back(std::string("Secure boot - ") +
                         ((android::base::GetProperty("ro.secure", "") == "1") ? "yes" : "no"));
-  title_lines.push_back("HW version - " + android::base::GetProperty("ro.revision", ""));
+  title_lines.push_back("Display Model - " + android::base::GetProperty("ro.boot.lcmtype", ""));
+  title_lines.push_back("FP Sensor Model - " + android::base::GetProperty("ro.boot.fpsensor", ""));
+  title_lines.push_back("HW Name - " + android::base::GetProperty("ro.boot.hwname", ""));
+  title_lines.push_back("HW Version - " + android::base::GetProperty("ro.boot.hwversion", ""));
 
   ui->ResetKeyInterruptStatus();
   ui->SetTitle(title_lines);
