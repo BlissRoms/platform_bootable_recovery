@@ -261,25 +261,6 @@ int format_volume(const std::string& volume, const std::string& directory, const
     }
   }
 
-  // If the raw disk will be used as a metadata encrypted device mapper target,
-  // next boot will do encrypt_in_place the raw disk which gives a subtle duration
-  // to get any failure in the process. In order to avoid it, let's simply wipe
-  // the raw disk if we don't reserve any space, which behaves exactly same as booting
-  // after "fastboot -w".
-  if (!v->metadata_key_dir.empty() && length == 0) {
-    android::base::unique_fd fd(open(v->blk_device.c_str(), O_RDWR));
-    if (fd == -1) {
-      PLOG(ERROR) << "format_volume: failed to open " << v->blk_device;
-      return -1;
-    }
-    int64_t device_size = get_file_size(fd.get(), 0);
-    if (device_size > 0 && !wipe_block_device(fd.get(), device_size)) {
-      LOG(INFO) << "format_volume: wipe metadata encrypted " << v->blk_device << " with size "
-                << device_size;
-      return 0;
-    }
-  }
-
   if (fs == "ext4") {
     static constexpr int kBlockSize = 4096;
     std::vector<std::string> mke2fs_args = {
