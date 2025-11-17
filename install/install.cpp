@@ -65,6 +65,7 @@
 using namespace std::chrono_literals;
 
 bool ask_to_ab_reboot(Device* device);
+bool ask_to_cancel_ota(Device* device);
 bool ask_to_continue_unverified(Device* device);
 bool ask_to_continue_downgrade(Device* device);
 bool ask_to_continue_spl_downgrade(Device* device);
@@ -396,6 +397,13 @@ static InstallResult TryUpdateBinary(Package* package, bool* wipe_cache,
   bool has_metadata = ReadMetadataFromPackage(zip, &metadata);
 
   const bool package_is_ab = has_metadata && get_value(metadata, "ota-type") == OtaTypeToString(OtaType::AB);
+  if (package_is_ab && !IsCancelUpdateSafe(device)) {
+    if (!IsCancelUpdateSafe(device)) {
+      if (!ask_to_cancel_ota(device)) {
+        return INSTALL_ERROR;
+      }
+    }
+  }
   const bool package_is_brick = get_value(metadata, "ota-type") == OtaTypeToString(OtaType::BRICK);
   if (package_is_brick) {
     LOG(INFO) << "Installing a brick package";
@@ -415,11 +423,18 @@ static InstallResult TryUpdateBinary(Package* package, bool* wipe_cache,
   bool device_supports_virtual_ab = android::base::GetBoolProperty("ro.virtual_ab.enabled", false);
 
   bool spl_downgrade_approved = false;
+  const auto allow_spl_downgrade =
+      android::base::GetBoolProperty("persist.vendor.recovery_allow_spl_downgrade", false);
   const auto current_spl = android::base::GetProperty("ro.build.version.security_patch", "");
-  if (ViolatesSPLDowngrade(zip, current_spl) && !ask_to_continue_spl_downgrade(device)) {
-    LOG(ERROR) << "Denying OTA because it's SPL downgrade";
-    return INSTALL_ERROR;
-  } else {
+  if (ViolatesSPLDowngrade(zip, current_spl)) {
+    if (!allow_spl_downgrade || !ui->IsTextVisible()) {
+      LOG(ERROR) << "Denying OTA because it's SPL downgrade";
+      return INSTALL_ERROR;
+    }
+    if (!ask_to_continue_spl_downgrade(device)) {
+      LOG(ERROR) << "User denied SPL downgrade";
+      return INSTALL_ERROR;
+    }
     spl_downgrade_approved = true;
   }
 
@@ -815,7 +830,6 @@ bool SetupPackageMount(const std::string& package_path, bool* should_use_fuse) {
       LOG(ERROR) << "Block map path " << package_path << " not canonical, abort installation.";
       return false;
     }
-
     // uncrypt only produces block map only if the package stays on /data.
     *should_use_fuse = false;
     return true;

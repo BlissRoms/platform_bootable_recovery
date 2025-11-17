@@ -250,9 +250,9 @@ bool ask_to_continue_spl_downgrade(Device* device) {
   } else {
     device->GetUI()->SetProgressType(RecoveryUI::EMPTY);
     return yes_no(device,
-      "!!! WARNING !!! Downgrade detected. This can lead to permanent data loss. "
-      "THIS CANNOT BE UNDONE!. "
-      "Restoring the system might require formatting the user data. ",
+      "WARNING: Security patch level downgrade detected. "
+      "This may require formatting data. "
+      "Device may brick if hardware rollback protection is enabled. ",
       "Install anyway?");
   }
 }
@@ -268,7 +268,7 @@ static bool ask_to_wipe_data(Device* device) {
   return (chosen_item == 1);
 }
 
-static bool ask_to_cancel_ota(Device* device) {
+bool ask_to_cancel_ota(Device* device) {
   // clang-format off
   std::vector<std::string> headers{
     "Overwrite in-progress update?",
@@ -652,13 +652,6 @@ change_menu:
       case Device::APPLY_UPDATE:
       case Device::ENTER_RESCUE: {
         save_current_log = true;
-
-        if (!IsCancelUpdateSafe(device)) {
-          if (!ask_to_cancel_ota(device)) {
-            break;
-          }
-        }
-
         update_in_progress = true;
         WriteUpdateInProgress();
 
